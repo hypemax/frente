@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frente de Caixa - Tabacaria JK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Estilos customizados para a identidade visual da Tabacaria JK */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #111827; /* bg-gray-900 */
+            color: #f9fafb; /* text-gray-50 */
+        }
+        .action-button { 
+            background-color: #450a0a; /* bg-red-950 */
+            color: white;
+            border: 1px solid #7f1d1d; /* border-red-800 */
+            transition: background-color 0.2s; 
+        }
+        .action-button:hover { 
+            background-color: #7f1d1d; /* bg-red-800 */
+        }
+        .shortcut-key { 
+            font-size: 0.7rem; 
+            color: #9ca3af; /* text-gray-400 */
+        }
+        .receipt-item { 
+            border-bottom: 1px dashed #4b5563; /* border-gray-600 */
+        }
+        .modal-overlay { 
+            background-color: rgba(0, 0, 0, 0.7); 
+        }
+        .product-list-item:hover { 
+            background-color: #374151; /* bg-gray-700 */
+        }
+        .jk-logo {
+            background-color: #1f2937; /* bg-gray-800 */
+        }
+        .btn-primary {
+            background-color: #dc2626; /* bg-red-600 */
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #b91c1c; /* bg-red-700 */
+        }
+        .btn-primary:disabled {
+            background-color: #f87171; /* bg-red-400 */
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .input-focus:focus {
+            outline: none;
+            --tw-ring-color: #ef4444; /* ring-red-500 */
+            box-shadow: 0 0 0 2px var(--tw-ring-color);
+            border-color: #ef4444; /* border-red-500 */
+        }
+        /* Custom modal background */
+        .modal-content {
+            background-color: #1f2937; /* bg-gray-800 */
+            color: #f9fafb; /* text-gray-50 */
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4">
+
+    <!-- Login Screen -->
+    <div id="login-container" class="fixed inset-0 bg-gray-900 flex items-center justify-center z-[100]">
+        <div class="w-full max-w-sm p-8 space-y-6 bg-gray-800 rounded-lg shadow-lg">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-red-600 tracking-wider">Tabacaria JK</h1>
+                <p class="text-gray-400 mt-2">Acesso ao Sistema</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-300">Usuário</label>
+                    <input type="text" id="username" name="username" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-md input-focus outline-none" required>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-300">Senha</label>
+                    <input type="password" id="password" name="password" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-md input-focus outline-none" required>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm text-center hidden">Usuário ou senha inválidos.</p>
+                <button type="submit" class="w-full btn-primary py-3 rounded-md text-lg">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="hidden">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <header class="flex justify-between items-center text-xs sm:text-sm mb-4">
+                <div class="flex-1">
+                    <div><strong>Definir cliente (F2)</strong></div>
+                    <div class="text-gray-400">Sem cliente identificado.</div>
+                </div>
+                <div class="flex-1 text-center">
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-100">CAIXA DISPONÍVEL</h1>
+                </div>
+                <div class="flex-1 text-right flex items-center justify-end gap-4">
+                    <div>
+                        <div>
+                            <span class="hidden sm:inline"><strong>Desconto (F6)</strong> | </span>
+                            <strong>Cancelar Item (F5)</strong>
+                        </div>
+                        <div class="text-gray-400">Usuário: <span id="logged-in-user"></span></div>
+                    </div>
+                    <button id="logout-btn" class="bg-red-800 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm">Sair</button>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Left Panel -->
+                <div class="flex flex-col gap-4">
+                    <div class="bg-gray-800 p-4 rounded-lg shadow-lg text-gray-100">
+                        <div class="mb-3 relative">
+                            <label for="produto-input" class="block text-sm font-medium text-gray-300 mb-1">Produto</label>
+                            <div class="relative">
+                                <input type="text" id="produto-input" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md input-focus outline-none" placeholder="Digite para buscar ou pressione Ctrl+I para listar" autocomplete="off">
+                                <span class="absolute right-3 top-3 text-gray-400"><i class="fa fa-search"></i> (Ctrl+I)</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="quantidade-input" class="block text-sm font-medium text-gray-300 mb-1">Quantidade</label>
+                                <input type="number" id="quantidade-input" value="1" min="1" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md input-focus outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Valor total do item</label>
+                                <div id="item-total" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-md text-right font-bold text-lg">R$ 0,00</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Logo Section -->
+                    <div class="flex-grow jk-logo rounded-lg shadow-lg flex flex-col items-center justify-center min-h-[200px] sm:min-h-[300px]">
+                        <div class="text-center">
+                            <div class="text-5xl font-bold text-red-600 tracking-wider">Tabacaria JK</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel (Receipt) -->
+                <div class="flex flex-col bg-gray-800 rounded-lg shadow-lg text-gray-100 min-h-[400px]">
+                    <div id="lista-itens" class="flex-grow p-4 overflow-y-auto">
+                        <div class="text-center text-gray-500 h-full flex items-center justify-center"><p>Aguardando itens...</p></div>
+                    </div>
+                    <div class="border-t border-gray-700 p-3 bg-gray-900 flex justify-between items-center text-sm font-medium">
+                        <div>Itens: <span id="total-itens">0</span></div>
+                        <div>Quantidade: <span id="total-quantidade">0</span></div>
+                        <div>Desconto: <span id="total-desconto">R$ 0,00</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <footer class="mt-4">
+                <div class="btn-primary p-4 rounded-t-lg shadow-lg flex justify-between items-center cursor-pointer" id="finalizar-venda-btn">
+                    <span class="text-2xl font-bold">Finalizar venda (F3)</span>
+                    <span id="valor-total" class="text-3xl font-bold">R$ 0,00</span>
+                </div>
+                <div id="footer-actions-grid" class="grid gap-px bg-gray-700 rounded-b-lg overflow-hidden">
+                    <button class="action-button p-3 text-center" id="cancelar-operacao-btn"><div>Cancelar operação</div><div class="shortcut-key">(ESC)</div></button>
+                    <button class="action-button p-3 text-center" onclick="showFullProductList();"><div>Lista de Produtos</div><div class="shortcut-key">(Ctrl+I)</div></button>
+                    <button class="action-button p-3 text-center admin-only" id="cadastrar-produto-btn"><div>Cadastrar Produto</div><div class="shortcut-key">(F7)</div></button>
+                    <button class="action-button p-3 text-center"><div>Abrir gaveta</div><div class="shortcut-key">(F11)</div></button>
+                    <button class="action-button p-3 text-center"><div>Devolução</div><div class="shortcut-key">(F1)</div></button>
+                    <button class="action-button p-3 text-center"><div>Suprimento/Sangria</div><div class="shortcut-key">(INS)</div></button>
+                    <button class="action-button p-3 text-center" id="fechamento-caixa-btn"><div>Fechamento Caixa</div><div class="shortcut-key">(F10)</div></button>
+                    <button class="action-button p-3 text-center admin-only" id="activity-log-btn"><div>Rel. Atividades</div><div class="shortcut-key">(F8)</div></button>
+                    <button class="action-button p-3 text-center"><div>Pedido</div><div class="shortcut-key">(F9)</div></button>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-container">
+        <!-- Payment Modal -->
+        <div id="payment-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content p-6 rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-w-4xl">
+                <h3 class="text-2xl font-bold text-center mb-4">Pagamento</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left: Payment Options -->
+                    <div>
+                        <h4 class="text-lg font-semibold mb-2 text-gray-200">1. Escolha a forma de pagamento</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button data-payment="Dinheiro" class="payment-option-btn bg-blue-600 text-white p-4 rounded-lg text-lg font-semibold hover:bg-blue-700"><i class="fa-solid fa-money-bill-wave mr-2"></i>Dinheiro</button>
+                            <button data-payment="Cartão de Crédito" class="payment-option-btn bg-purple-600 text-white p-4 rounded-lg text-lg font-semibold hover:bg-purple-700"><i class="fa-regular fa-credit-card mr-2"></i>Crédito</button>
+                            <button data-payment="Cartão de Débito" class="payment-option-btn bg-orange-600 text-white p-4 rounded-lg text-lg font-semibold hover:bg-orange-700"><i class="fa-solid fa-credit-card mr-2"></i>Débito</button>
+                            <button data-payment="PIX" class="payment-option-btn bg-cyan-500 text-white p-4 rounded-lg text-lg font-semibold hover:bg-cyan-600"><i class="fa-brands fa-pix mr-2"></i>PIX</button>
+                        </div>
+                    </div>
+                    <!-- Right: Payment Summary -->
+                    <div class="bg-gray-900 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3 text-gray-200">2. Resumo da Venda</h4>
+                        <div class="space-y-2 text-lg">
+                            <div class="flex justify-between font-bold"><span>Total da Venda:</span><span id="payment-total-venda">R$ 0,00</span></div>
+                            <div class="flex justify-between"><span>Total Pago:</span><span id="payment-total-pago">R$ 0,00</span></div>
+                            <div class="flex justify-between text-red-500 font-semibold"><span>Restante:</span><span id="payment-restante">R$ 0,00</span></div>
+                            <div class="flex justify-between text-green-500 font-semibold"><span>Troco:</span><span id="payment-troco">R$ 0,00</span></div>
+                        </div>
+                        <hr class="my-3 border-gray-700">
+                        <h5 class="font-semibold mb-2 text-gray-200">Pagamentos Adicionados:</h5>
+                        <div id="payment-lista" class="space-y-1 text-sm max-h-24 overflow-y-auto">
+                            <p class="text-gray-400">Nenhum pagamento adicionado.</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="flex justify-between items-center mt-6">
+                    <button id="payment-cancel-btn" class="bg-gray-600 text-gray-100 px-6 py-2 rounded-md hover:bg-gray-700">Cancelar</button>
+                    <button id="payment-concluir-btn" class="btn-primary px-8 py-3 rounded-md text-xl" disabled>Concluir Venda</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Amount Input Modal -->
+        <div id="amount-input-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content p-6 rounded-lg shadow-xl w-11/12 sm:w-1/4">
+                <h3 id="amount-modal-title" class="text-xl font-bold text-center mb-4"></h3>
+                <form id="amount-input-form">
+                    <label for="payment-amount-input" class="block text-sm font-medium text-gray-300 mb-1">Valor</label>
+                    <input type="number" id="payment-amount-input" step="0.01" min="0.01" class="w-full p-3 text-2xl text-right bg-gray-700 border border-gray-600 rounded-md outline-none input-focus" required>
+                    <div class="flex justify-end gap-4 mt-6">
+                        <button type="button" id="amount-cancel-btn" class="bg-gray-600 text-gray-100 px-4 py-2 rounded-md hover:bg-gray-700">Cancelar</button>
+                        <button type="submit" class="btn-primary px-4 py-2 rounded-md">Adicionar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Product Registration Modal -->
+        <div id="product-registration-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content p-6 rounded-lg shadow-xl w-11/12 md:w-1/2 lg:w-1/3">
+                <h3 class="text-2xl font-bold text-center mb-6">Cadastrar Novo Produto</h3>
+                <form id="product-registration-form" class="space-y-4">
+                    <div>
+                        <label for="reg-barcode" class="block text-sm font-medium text-gray-300">Código de Barras (ID)</label>
+                        <div class="relative">
+                            <input type="text" id="reg-barcode" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md outline-none input-focus" required>
+                            <span class="absolute right-3 top-2.5 text-gray-400"><i class="fa-solid fa-barcode"></i></span>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="reg-name" class="block text-sm font-medium text-gray-300">Nome do Produto</label>
+                        <input type="text" id="reg-name" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md outline-none input-focus" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="reg-cost-price" class="block text-sm font-medium text-gray-300">Preço de Custo</label>
+                            <input type="number" id="reg-cost-price" step="0.01" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md outline-none input-focus" required>
+                        </div>
+                        <div>
+                            <label for="reg-sell-price" class="block text-sm font-medium text-gray-300">Preço de Venda</label>
+                            <input type="number" id="reg-sell-price" step="0.01" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md outline-none input-focus" required>
+                        </div>
+                    </div>
+                     <div>
+                        <label for="reg-stock" class="block text-sm font-medium text-gray-300">Quantidade em Estoque</label>
+                        <input type="number" id="reg-stock" min="0" value="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-md outline-none input-focus" required>
+                    </div>
+                    <div class="flex justify-end gap-4 pt-4">
+                        <button type="button" id="registration-cancel-btn" class="bg-gray-600 text-gray-100 px-6 py-2 rounded-md hover:bg-gray-700">Cancelar</button>
+                        <button type="submit" id="registration-save-btn" class="btn-primary px-6 py-2 rounded-md">Salvar Produto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Product List Modal -->
+        <div id="product-list-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2 max-h-[80vh] flex flex-col">
+                <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Lista de Produtos (Ctrl+I)</h3>
+                    <button id="product-list-close-btn" class="text-gray-400 hover:text-white">&times;</button>
+                </div>
+                <div id="product-list-content" class="p-4 overflow-y-auto"></div>
+            </div>
+        </div>
+        
+        <!-- Activity Log Modal -->
+        <div id="activity-log-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content rounded-lg shadow-xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[80vh] flex flex-col">
+                <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Relatório de Atividades (F8)</h3>
+                    <button id="activity-log-close-btn" class="text-gray-400 hover:text-white">&times;</button>
+                </div>
+                <div id="activity-log-content" class="p-4 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <!-- Generic Message Modal -->
+        <div id="message-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content p-8 rounded-lg shadow-xl text-center w-11/12 sm:w-1/3">
+                <p id="modal-message" class="text-lg mb-6"></p>
+                <button id="modal-close-btn" class="btn-primary px-6 py-2 rounded-md">OK</button>
+            </div>
+        </div>
+        <!-- Confirmation Modal -->
+        <div id="confirm-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content p-8 rounded-lg shadow-xl w-11/12 sm:w-1/3">
+                <p id="confirm-message" class="text-lg mb-6"></p>
+                <div class="flex justify-center gap-4">
+                    <button id="confirm-cancel-btn" class="bg-gray-600 text-gray-100 px-6 py-2 rounded-md hover:bg-gray-700">Cancelar</button>
+                    <button id="confirm-ok-btn" class="bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700">Confirmar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Closing Report Modal -->
+        <div id="closing-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
+            <div class="modal-content p-6 rounded-lg shadow-xl w-11/12 md:w-2/3 lg:w-1/2">
+                <h3 class="text-2xl font-bold text-center mb-4">Fechamento de Caixa</h3>
+                <div id="closing-report" class="space-y-4 max-h-[60vh] overflow-y-auto p-2 border border-gray-700 rounded bg-gray-900"></div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="closing-close-btn" class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700">Voltar</button>
+                    <button id="closing-download-btn" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Concluir e Baixar Relatório
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- GLOBAL APP STATE ---
+        let isAppInitialized = false;
+
+        // --- LOGIN ELEMENTS & USERS ---
+        const loginContainer = document.getElementById('login-container');
+        const appContainer = document.getElementById('app-container');
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loggedInUserEl = document.getElementById('logged-in-user');
+
+        const users = [
+            { username: 'admin', password: '123', role: 'admin' },
+            { username: 'Brian', password: 'kk2208uol', role: 'basic' }
+        ];
+
+        // --- APP ELEMENTS ---
+        let produtoInput, quantidadeInput, itemTotalEl, listaItensEl, totalItensEl, totalQuantidadeEl, valorTotalEl, finalizarVendaBtn, cancelarOperacaoBtn, fechamentoCaixaBtn, cadastrarProdutoBtn, activityLogBtn, productListModal, productListContentEl, productListCloseBtn, messageModal, modalMessage, modalCloseBtn, confirmModal, confirmMessage, confirmOkBtn, confirmCancelBtn, paymentModal, paymentCancelBtn, paymentConcluirBtn, paymentTotalVendaEl, paymentTotalPagoEl, paymentRestanteEl, paymentTrocoEl, paymentListaEl, amountInputModal, amountInputForm, amountModalTitle, paymentAmountInput, amountCancelBtn, productRegistrationModal, productRegistrationForm, registrationCancelBtn, regBarcode, regName, regCostPrice, regSellPrice, regStock, closingModal, closingReportEl, closingCloseBtn, closingDownloadBtn, activityLogModal, activityLogContent, activityLogCloseBtn, footerActionsGrid;
+
+        // --- DATABASE & STATE ---
+        let produtos = [];
+        let carrinho = [];
+        let vendasRealizadas = [];
+        let proximoIdVenda = 1;
+        let pagamentosAdicionados = [];
+        let totalVendaAtual = 0;
+        let metodoPagamentoAtual = '';
+
+        // --- LOGIN/LOGOUT & FULLSCREEN LOGIC ---
+        const openFullscreen = () => {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`));
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        }
+
+        const handleLogin = (e) => {
+            e.preventDefault();
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            const user = users.find(u => u.username === username && u.password === password);
+
+            if (user) {
+                openFullscreen();
+                sessionStorage.setItem('loggedInUser', user.username);
+                sessionStorage.setItem('userRole', user.role);
+                loginContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                loginError.classList.add('hidden');
+                
+                if (!isAppInitialized) {
+                    initializeApp();
+                } else {
+                    updateUIForUser();
+                }
+            } else {
+                loginError.classList.remove('hidden');
+            }
+        };
+
+        const handleLogout = () => {
+            sessionStorage.removeItem('loggedInUser');
+            sessionStorage.removeItem('userRole');
+            appContainer.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+            carrinho = [];
+            if(listaItensEl) atualizarTela();
+        };
+        
+        // --- INITIALIZATION ---
+        const checkLoginStatus = () => {
+            const loggedInUser = sessionStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                loginContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                if (!isAppInitialized) {
+                    initializeApp();
+                }
+            } else {
+                appContainer.classList.add('hidden');
+                loginContainer.classList.remove('hidden');
+            }
+        };
+
+        loginForm.addEventListener('submit', handleLogin);
+        logoutBtn.addEventListener('click', handleLogout);
+
+        function updateUIForUser() {
+            loggedInUserEl.textContent = sessionStorage.getItem('loggedInUser');
+            const userRole = sessionStorage.getItem('userRole');
+
+            document.querySelectorAll('.admin-only').forEach(el => {
+                if (userRole !== 'admin') {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = 'block';
+                }
+            });
+            
+            const visibleButtons = Array.from(footerActionsGrid.children).filter(btn => btn.style.display !== 'none');
+            footerActionsGrid.style.gridTemplateColumns = `repeat(${visibleButtons.length}, 1fr)`;
+        }
+
+        // --- MAIN APP LOGIC ---
+        function initializeApp() {
+            isAppInitialized = true;
+            // --- DOM ELEMENTS (Initialize after login) ---
+            produtoInput = document.getElementById('produto-input');
+            quantidadeInput = document.getElementById('quantidade-input');
+            itemTotalEl = document.getElementById('item-total');
+            listaItensEl = document.getElementById('lista-itens');
+            totalItensEl = document.getElementById('total-itens');
+            totalQuantidadeEl = document.getElementById('total-quantidade');
+            valorTotalEl = document.getElementById('valor-total');
+            finalizarVendaBtn = document.getElementById('finalizar-venda-btn');
+            cancelarOperacaoBtn = document.getElementById('cancelar-operacao-btn');
+            fechamentoCaixaBtn = document.getElementById('fechamento-caixa-btn');
+            cadastrarProdutoBtn = document.getElementById('cadastrar-produto-btn');
+            activityLogBtn = document.getElementById('activity-log-btn');
+            productListModal = document.getElementById('product-list-modal');
+            productListContentEl = document.getElementById('product-list-content');
+            productListCloseBtn = document.getElementById('product-list-close-btn');
+            activityLogModal = document.getElementById('activity-log-modal');
+            activityLogContent = document.getElementById('activity-log-content');
+            activityLogCloseBtn = document.getElementById('activity-log-close-btn');
+            messageModal = document.getElementById('message-modal');
+            modalMessage = document.getElementById('modal-message');
+            modalCloseBtn = document.getElementById('modal-close-btn');
+            confirmModal = document.getElementById('confirm-modal');
+            confirmMessage = document.getElementById('confirm-message');
+            confirmOkBtn = document.getElementById('confirm-ok-btn');
+            confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+            paymentModal = document.getElementById('payment-modal');
+            paymentCancelBtn = document.getElementById('payment-cancel-btn');
+            paymentConcluirBtn = document.getElementById('payment-concluir-btn');
+            paymentTotalVendaEl = document.getElementById('payment-total-venda');
+            paymentTotalPagoEl = document.getElementById('payment-total-pago');
+            paymentRestanteEl = document.getElementById('payment-restante');
+            paymentTrocoEl = document.getElementById('payment-troco');
+            paymentListaEl = document.getElementById('payment-lista');
+            amountInputModal = document.getElementById('amount-input-modal');
+            amountInputForm = document.getElementById('amount-input-form');
+            amountModalTitle = document.getElementById('amount-modal-title');
+            paymentAmountInput = document.getElementById('payment-amount-input');
+            amountCancelBtn = document.getElementById('amount-cancel-btn');
+            productRegistrationModal = document.getElementById('product-registration-modal');
+            productRegistrationForm = document.getElementById('product-registration-form');
+            registrationCancelBtn = document.getElementById('registration-cancel-btn');
+            regBarcode = document.getElementById('reg-barcode');
+            regName = document.getElementById('reg-name');
+            regCostPrice = document.getElementById('reg-cost-price');
+            regSellPrice = document.getElementById('reg-sell-price');
+            regStock = document.getElementById('reg-stock');
+            closingModal = document.getElementById('closing-modal');
+            closingReportEl = document.getElementById('closing-report');
+            closingCloseBtn = document.getElementById('closing-close-btn');
+            closingDownloadBtn = document.getElementById('closing-download-btn');
+            footerActionsGrid = document.getElementById('footer-actions-grid');
+
+            updateUIForUser();
+
+            // --- LOCALSTORAGE & LOGGING FUNCTIONS ---
+            const saveProdutos = () => {
+                localStorage.setItem('tabacaria_jk_produtos', JSON.stringify(produtos));
+            };
+
+            const loadProdutos = () => {
+                const savedProdutos = localStorage.getItem('tabacaria_jk_produtos');
+                if (savedProdutos) {
+                    produtos = JSON.parse(savedProdutos);
+                } else {
+                    produtos = [
+                        { id: '7891000315507', nome: 'Pod Elf World 6000puffs', preco: 75.00, custo: 40.00, estoque: 50 },
+                        { id: '7891000055501', nome: 'Vaper Vaporesso Sky Solo', preco: 150.00, custo: 90.00, estoque: 30 },
+                        { id: '78960204', nome: 'Seda Zomo Brown King Size', preco: 5.00, custo: 2.50, estoque: 200 },
+                        { id: '7898589520108', nome: 'Isqueiro Clipper Grande', preco: 8.00, custo: 4.00, estoque: 100 },
+                        { id: '7891149101308', nome: 'Essência Adalya Love 66 50g', preco: 12.00, custo: 7.00, estoque: 80 },
+                    ];
+                    saveProdutos();
+                }
+            };
+            
+            const logActivity = (action, details) => {
+                const logs = JSON.parse(localStorage.getItem('tabacaria_jk_logs') || '[]');
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    user: sessionStorage.getItem('loggedInUser'),
+                    action: action,
+                    details: details
+                };
+                logs.push(logEntry);
+                localStorage.setItem('tabacaria_jk_logs', JSON.stringify(logs));
+            };
+
+            // --- UTILITY FUNCTIONS ---
+            const formatCurrency = (value) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const formatDateTime = (isoString) => new Date(isoString).toLocaleString('pt-BR');
+
+            // --- MODAL FUNCTIONS ---
+            const showMessageModal = (message) => { modalMessage.textContent = message; messageModal.classList.remove('hidden'); };
+            const hideMessageModal = () => messageModal.classList.add('hidden');
+            const showConfirmModal = (message, onConfirm) => {
+                confirmMessage.textContent = message;
+                confirmModal.classList.remove('hidden');
+                confirmOkBtn.onclick = () => { hideConfirmModal(); onConfirm(); };
+            };
+            const hideConfirmModal = () => confirmModal.classList.add('hidden');
+
+            // --- CORE UI FUNCTIONS ---
+            atualizarTela = () => {
+                listaItensEl.innerHTML = '';
+                if (carrinho.length === 0) {
+                    listaItensEl.innerHTML = `<div class="text-center text-gray-500 h-full flex items-center justify-center"><p>Aguardando itens...</p></div>`;
+                } else {
+                    carrinho.forEach((item, index) => {
+                        const itemEl = document.createElement('div');
+                        itemEl.classList.add('receipt-item', 'p-2', 'grid', 'grid-cols-12', 'gap-2', 'text-sm', 'items-center');
+                        itemEl.innerHTML = `
+                            <div class="col-span-1 font-medium">${String(index + 1).padStart(2, '0')}</div>
+                            <div class="col-span-5">${item.nome}</div>
+                            <div class="col-span-2 text-right">${item.quantidade} x ${formatCurrency(item.preco)}</div>
+                            <div class="col-span-3 text-right font-bold">${formatCurrency(item.quantidade * item.preco)}</div>
+                            <div class="col-span-1 text-center text-red-500 hover:text-red-700 cursor-pointer" onclick="window.removerItem(${index})">
+                                <i class="fa fa-trash"></i>
+                            </div>
+                        `;
+                        listaItensEl.appendChild(itemEl);
+                    });
+                }
+
+                const totalItens = carrinho.length;
+                const totalQuantidade = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+                const valorTotal = carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+
+                totalItensEl.textContent = totalItens;
+                totalQuantidadeEl.textContent = totalQuantidade;
+                valorTotalEl.textContent = formatCurrency(valorTotal);
+            };
+
+            const atualizarTotalItem = () => {
+                const query = produtoInput.value.trim().toLowerCase();
+                const produtoSelecionado = produtos.find(p => p.nome.toLowerCase() === query || p.id === query);
+                const quantidadeAtual = parseInt(quantidadeInput.value) || 0;
+                itemTotalEl.textContent = produtoSelecionado ? formatCurrency(produtoSelecionado.preco * quantidadeAtual) : formatCurrency(0);
+            };
+
+            window.removerItem = (index) => { 
+                const itemRemovido = carrinho[index];
+                logActivity('Item Removido', { nome: itemRemovido.nome, quantidade: itemRemovido.quantidade });
+                carrinho.splice(index, 1); 
+                atualizarTela(); 
+            };
+
+            const adicionarItem = () => {
+                const query = produtoInput.value.trim();
+                const quantidade = parseInt(quantidadeInput.value);
+
+                if (!query || !quantidade || quantidade <= 0) return;
+
+                const produtoEncontrado = produtos.find(p => p.id === query || p.nome.toLowerCase() === query.toLowerCase());
+
+                if (produtoEncontrado) {
+                    if(produtoEncontrado.estoque < quantidade) {
+                        showMessageModal(`Estoque insuficiente para "${produtoEncontrado.nome}". Restam ${produtoEncontrado.estoque} unidades.`);
+                        return;
+                    }
+                    const itemNoCarrinho = carrinho.find(item => item.id === produtoEncontrado.id);
+                    if (itemNoCarrinho) {
+                        itemNoCarrinho.quantidade += quantidade;
+                    } else {
+                        carrinho.push({ ...produtoEncontrado, quantidade: quantidade });
+                    }
+                    produtoInput.value = '';
+                    quantidadeInput.value = '1';
+                    produtoInput.focus();
+                    atualizarTela();
+                    atualizarTotalItem();
+                } else {
+                    showMessageModal(`Produto não encontrado. Cadastre-o usando F7.`);
+                }
+            };
+
+            const cancelarOperacao = () => {
+                if (carrinho.length > 0) {
+                    showConfirmModal("Tem certeza que deseja cancelar a operação? Todos os itens serão removidos.", () => {
+                        logActivity('Operação Cancelada', { itens: carrinho.map(i => `${i.quantidade}x ${i.nome}`).join(', ') });
+                        carrinho = [];
+                        atualizarTela();
+                        showMessageModal("Operação cancelada.");
+                    });
+                }
+            };
+            
+            // --- PAYMENT LOGIC ---
+            const iniciarFinalizacaoVenda = () => {
+                if (carrinho.length === 0) { 
+                    showMessageModal("Nenhum item no carrinho para finalizar a venda."); 
+                    return; 
+                }
+                totalVendaAtual = carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+                pagamentosAdicionados = [];
+                atualizarModalPagamento();
+                paymentModal.classList.remove('hidden');
+            };
+
+            const atualizarModalPagamento = () => {
+                const totalPago = pagamentosAdicionados.reduce((acc, p) => acc + p.valor, 0);
+                const restante = totalVendaAtual - totalPago;
+                const troco = totalPago > totalVendaAtual ? totalPago - totalVendaAtual : 0;
+
+                paymentTotalVendaEl.textContent = formatCurrency(totalVendaAtual);
+                paymentTotalPagoEl.textContent = formatCurrency(totalPago);
+                paymentRestanteEl.textContent = formatCurrency(restante > 0 ? restante : 0);
+                paymentTrocoEl.textContent = formatCurrency(troco);
+
+                if (pagamentosAdicionados.length === 0) {
+                    paymentListaEl.innerHTML = `<p class="text-gray-400">Nenhum pagamento adicionado.</p>`;
+                } else {
+                    paymentListaEl.innerHTML = '';
+                    pagamentosAdicionados.forEach((p, index) => {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'flex justify-between items-center bg-gray-700 p-1 rounded';
+                        itemEl.innerHTML = `
+                            <span>${p.metodo}: <strong>${formatCurrency(p.valor)}</strong></span>
+                            <button class="text-red-500 hover:text-red-700 text-xs" onclick="window.removerPagamento(${index})"><i class="fa fa-trash"></i></button>
+                        `;
+                        paymentListaEl.appendChild(itemEl);
+                    });
+                }
+
+                paymentConcluirBtn.disabled = restante > 0;
+            };
+
+            window.removerPagamento = (index) => {
+                pagamentosAdicionados.splice(index, 1);
+                atualizarModalPagamento();
+            };
+
+            const abrirModalDeValor = (metodo) => {
+                metodoPagamentoAtual = metodo;
+                amountModalTitle.textContent = `Valor em ${metodo}`;
+                const totalPago = pagamentosAdicionados.reduce((acc, p) => acc + p.valor, 0);
+                const restante = totalVendaAtual - totalPago;
+                paymentAmountInput.value = restante > 0 ? restante.toFixed(2) : '';
+                amountInputModal.classList.remove('hidden');
+                paymentAmountInput.focus();
+                paymentAmountInput.select();
+            };
+
+            const adicionarPagamento = (e) => {
+                e.preventDefault();
+                const valor = parseFloat(paymentAmountInput.value);
+                if (isNaN(valor) || valor <= 0) {
+                    showMessageModal("Por favor, insira um valor válido.");
+                    return;
+                }
+                pagamentosAdicionados.push({ metodo: metodoPagamentoAtual, valor: valor });
+                amountInputModal.classList.add('hidden');
+                atualizarModalPagamento();
+            };
+            
+            const concluirVendaMultipla = () => {
+                const totalPago = pagamentosAdicionados.reduce((acc, p) => acc + p.valor, 0);
+                if (totalPago < totalVendaAtual) {
+                    showMessageModal("O valor pago é menor que o total da venda.");
+                    return;
+                }
+
+                carrinho.forEach(itemVendido => {
+                    const produtoNoEstoque = produtos.find(p => p.id === itemVendido.id);
+                    if (produtoNoEstoque) {
+                        produtoNoEstoque.estoque -= itemVendido.quantidade;
+                    }
+                });
+                saveProdutos();
+
+                const novaVenda = {
+                    id: `V${String(proximoIdVenda++).padStart(4, '0')}`,
+                    data: new Date(),
+                    pagamentos: [...pagamentosAdicionados],
+                    itens: [...carrinho],
+                    total: totalVendaAtual,
+                    troco: totalPago - totalVendaAtual
+                };
+                vendasRealizadas.push(novaVenda);
+                logActivity('Venda Realizada', { id: novaVenda.id, total: formatCurrency(novaVenda.total) });
+                
+                paymentModal.classList.add('hidden');
+                showMessageModal(`Venda ${novaVenda.id} registrada com sucesso!`);
+                carrinho = [];
+                atualizarTela();
+            };
+
+            // --- CLOSING AND REPORTING FUNCTIONS ---
+            const exibirFechamentoCaixa = () => {
+                if (vendasRealizadas.length === 0) { 
+                    showMessageModal("Nenhuma venda registrada para exibir o fechamento."); 
+                    return; 
+                }
+                const { reportHTML } = gerarRelatorio();
+                closingReportEl.innerHTML = reportHTML;
+                closingModal.classList.remove('hidden');
+            };
+
+            const gerarRelatorio = () => {
+                const totaisPorMetodo = vendasRealizadas.flatMap(v => v.pagamentos).reduce((acc, p) => {
+                    if (!acc[p.metodo]) { acc[p.metodo] = 0; }
+                    acc[p.metodo] += p.valor;
+                    return acc;
+                }, {});
+
+                const produtosVendidos = vendasRealizadas.flatMap(v => v.itens).reduce((acc, item) => {
+                    if (!acc[item.id]) {
+                        acc[item.id] = { nome: item.nome, quantidade: 0, total: 0 };
+                    }
+                    acc[item.id].quantidade += item.quantidade;
+                    acc[item.id].total += item.quantidade * item.preco;
+                    return acc;
+                }, {});
+
+                const totalGeral = vendasRealizadas.reduce((acc, venda) => acc + venda.total, 0);
+
+                let reportHTML = `<div class="border-b border-gray-700 pb-2 mb-2"><h4 class="text-lg font-bold">Resumo Geral</h4><p>Total de Vendas: <span class="font-semibold">${vendasRealizadas.length}</span></p><p>Valor Total Bruto: <span class="font-semibold">${formatCurrency(totalGeral)}</span></p></div><div><h4 class="text-lg font-bold mb-2">Totais por Forma de Pagamento</h4><div class="space-y-1">`;
+                for (const metodo in totaisPorMetodo) { reportHTML += `<p>${metodo}: <span class="font-semibold float-right">${formatCurrency(totaisPorMetodo[metodo])}</span></p>`; }
+                reportHTML += `</div></div><div class="border-t border-gray-700 pt-2 mt-4"><h4 class="text-lg font-bold mb-2">Histórico de Vendas</h4><div class="space-y-2 text-sm">`;
+                vendasRealizadas.forEach(venda => {
+                    const pagamentosStr = venda.pagamentos.map(p => `${p.metodo}: ${formatCurrency(p.valor)}`).join(', ');
+                    reportHTML += `<div class="p-2 bg-gray-800 rounded"><p class="font-bold">Venda ${venda.id} - ${formatDateTime(venda.data)} - ${formatCurrency(venda.total)} (${pagamentosStr})</p><ul class="list-disc list-inside pl-2 text-xs">${venda.itens.map(i => `<li>${i.quantidade}x ${i.nome}</li>`).join('')}</ul></div>`;
+                });
+                reportHTML += `</div></div>`;
+
+                let reportTXT = `==================================================\n  RELATÓRIO DE FECHAMENTO DE CAIXA\n==================================================\n\nData e Hora do Fechamento: ${formatDateTime(new Date().toISOString())}\n\n--------------------------------------------------\n  RESUMO FINANCEIRO\n--------------------------------------------------\nTotal de Vendas Realizadas: ${vendasRealizadas.length}\nValor Total Bruto: ${formatCurrency(totalGeral)}\n\n--- Vendas por Forma de Pagamento ---\n`;
+                for (const metodo in totaisPorMetodo) { reportTXT += `${metodo.padEnd(20)}: ${formatCurrency(totaisPorMetodo[metodo])}\n`; }
+                reportTXT += `\n--------------------------------------------------\n  RESUMO DE PRODUTOS VENDIDOS\n--------------------------------------------------\n`;
+                for (const id in produtosVendidos) {
+                    const p = produtosVendidos[id];
+                    reportTXT += `${p.quantidade}x ${p.nome.padEnd(30)} - Total: ${formatCurrency(p.total)}\n`;
+                }
+                reportTXT += `\n--------------------------------------------------\n  DETALHAMENTO DAS VENDAS\n--------------------------------------------------\n\n`;
+                vendasRealizadas.forEach(venda => {
+                    const pagamentosStr = venda.pagamentos.map(p => `${p.metodo}: ${formatCurrency(p.valor)}`).join(' / ');
+                    reportTXT += `Venda ${venda.id} - ${formatDateTime(venda.data)} - ${formatCurrency(venda.total)} (${pagamentosStr})\n`;
+                    venda.itens.forEach(item => {
+                        reportTXT += `  - ${item.quantidade}x ${item.nome} (${formatCurrency(item.preco)})\n`;
+                    });
+                    reportTXT += `\n`;
+                });
+                reportTXT += `==================================================\n  FIM DO RELATÓRIO\n==================================================\n`;
+
+                return { reportHTML, reportTXT };
+            };
+
+            const baixarArquivoTxt = (conteudo, nomeArquivo) => {
+                const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = nomeArquivo;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            const concluirFechamento = () => {
+                const { reportTXT, reportHTML } = gerarRelatorio();
+                logActivity('Fechamento de Caixa', { resumo: reportHTML });
+                const date = new Date();
+                const filename = `Fechamento_Caixa_${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}.txt`;
+                
+                baixarArquivoTxt(reportTXT, filename);
+
+                setTimeout(() => {
+                    showConfirmModal("O relatório foi baixado. Deseja concluir o fechamento e ZERAR os dados de vendas do período?", () => {
+                        vendasRealizadas = [];
+                        proximoIdVenda = 1;
+                        closingModal.classList.add('hidden');
+                        showMessageModal("Caixa fechado e zerado com sucesso! Pronto para o próximo expediente.");
+                    });
+                }, 100);
+            };
+
+            // --- PRODUCT LIST/SEARCH LOGIC ---
+            const populateProductList = (list) => {
+                productListContentEl.innerHTML = '';
+                if (list.length === 0) {
+                    productListContentEl.innerHTML = '<p class="text-gray-400 text-center p-4">Nenhum produto encontrado.</p>';
+                    return;
+                }
+                const table = document.createElement('table');
+                table.className = 'w-full text-left';
+                table.innerHTML = `
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="p-2">Produto</th>
+                            <th class="p-2 text-right">Preço</th>
+                            <th class="p-2 text-right">Estoque</th>
+                        </tr>
+                    </thead>
+                `;
+                const tbody = document.createElement('tbody');
+                list.forEach(p => {
+                    const row = document.createElement('tr');
+                    row.className = 'product-list-item cursor-pointer border-b border-gray-800';
+                    row.dataset.productId = p.id;
+                    row.innerHTML = `
+                        <td class="p-2">${p.nome}</td>
+                        <td class="p-2 text-right">${formatCurrency(p.preco)}</td>
+                        <td class="p-2 text-right">${p.estoque}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                productListContentEl.appendChild(table);
+            };
+            
+            showFullProductList = () => {
+                populateProductList(produtos);
+                productListModal.classList.remove('hidden');
+            };
+
+            const handleProductSearch = () => {
+                const query = produtoInput.value.trim().toLowerCase();
+                if (query.length === 0) {
+                    productListModal.classList.add('hidden');
+                    return;
+                }
+                const resultados = produtos.filter(p => p.nome.toLowerCase().includes(query) || p.id.includes(query));
+                populateProductList(resultados);
+                if(resultados.length > 0) productListModal.classList.remove('hidden');
+            };
+
+            const selectProduct = (e) => {
+                const selectedRow = e.target.closest('.product-list-item');
+                if (selectedRow) {
+                    const productId = selectedRow.dataset.productId;
+                    const produto = produtos.find(p => p.id === productId);
+                    if (produto) {
+                        produtoInput.value = produto.nome;
+                        productListModal.classList.add('hidden');
+                        quantidadeInput.focus();
+                        quantidadeInput.select();
+                        atualizarTotalItem();
+                    }
+                }
+            };
+
+            // --- PRODUCT REGISTRATION LOGIC ---
+            const showRegistrationModal = () => {
+                if (sessionStorage.getItem('userRole') !== 'admin') {
+                    showMessageModal('Acesso negado. Apenas administradores podem cadastrar produtos.');
+                    return;
+                }
+                productRegistrationModal.classList.remove('hidden');
+                regBarcode.focus();
+            };
+
+            const hideRegistrationModal = () => {
+                productRegistrationForm.reset();
+                productRegistrationModal.classList.add('hidden');
+                produtoInput.focus();
+            };
+            
+            const registerNewProduct = (e) => {
+                e.preventDefault();
+                const id = regBarcode.value.trim();
+                const nome = regName.value.trim();
+                const custo = parseFloat(regCostPrice.value);
+                const preco = parseFloat(regSellPrice.value);
+                const estoque = parseInt(regStock.value);
+
+                if (!id || !nome || isNaN(custo) || isNaN(preco) || isNaN(estoque)) {
+                    showMessageModal("Por favor, preencha todos os campos corretamente.");
+                    return;
+                }
+                if (produtos.some(p => p.id === id)) {
+                    showMessageModal("Um produto com este Código de Barras / ID já existe.");
+                    return;
+                }
+                const newProduct = { id, nome, preco, custo, estoque };
+                produtos.push(newProduct);
+                saveProdutos();
+                logActivity('Produto Cadastrado', { nome: newProduct.nome, id: newProduct.id });
+                hideRegistrationModal();
+                showMessageModal(`Produto "${nome}" cadastrado com sucesso!`);
+            };
+            
+            // --- ACTIVITY LOG LOGIC ---
+            const showActivityLog = () => {
+                if (sessionStorage.getItem('userRole') !== 'admin') {
+                    showMessageModal('Acesso negado.');
+                    return;
+                }
+                const logs = JSON.parse(localStorage.getItem('tabacaria_jk_logs') || '[]').reverse();
+                activityLogContent.innerHTML = '';
+                if (logs.length === 0) {
+                    activityLogContent.innerHTML = '<p class="text-gray-400 text-center p-4">Nenhuma atividade registrada.</p>';
+                } else {
+                    const table = document.createElement('table');
+                    table.className = 'w-full text-left text-sm';
+                    table.innerHTML = `
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="p-2">Data/Hora</th>
+                                <th class="p-2">Usuário</th>
+                                <th class="p-2">Ação</th>
+                                <th class="p-2">Detalhes</th>
+                            </tr>
+                        </thead>
+                    `;
+                    const tbody = document.createElement('tbody');
+                    logs.forEach(log => {
+                        const row = document.createElement('tr');
+                        row.className = 'border-b border-gray-800';
+                        row.innerHTML = `
+                            <td class="p-2 align-top">${formatDateTime(log.timestamp)}</td>
+                            <td class="p-2 align-top">${log.user}</td>
+                            <td class="p-2 align-top">${log.action}</td>
+                            <td class="p-2 align-top">${JSON.stringify(log.details)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    table.appendChild(tbody);
+                    activityLogContent.appendChild(table);
+                }
+                activityLogModal.classList.remove('hidden');
+            };
+
+            // --- EVENT LISTENERS ---
+            document.addEventListener('keydown', handleShortcuts);
+            produtoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); adicionarItem(); } });
+            produtoInput.addEventListener('input', handleProductSearch);
+            quantidadeInput.addEventListener('input', atualizarTotalItem);
+            quantidadeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); adicionarItem(); } });
+            productListContentEl.addEventListener('click', selectProduct);
+            productListCloseBtn.addEventListener('click', () => productListModal.classList.add('hidden'));
+            activityLogBtn.addEventListener('click', showActivityLog);
+            activityLogCloseBtn.addEventListener('click', () => activityLogModal.classList.add('hidden'));
+            finalizarVendaBtn.addEventListener('click', iniciarFinalizacaoVenda);
+            cancelarOperacaoBtn.addEventListener('click', cancelarOperacao);
+            fechamentoCaixaBtn.addEventListener('click', exibirFechamentoCaixa);
+            cadastrarProdutoBtn.addEventListener('click', showRegistrationModal);
+            modalCloseBtn.addEventListener('click', hideMessageModal);
+            confirmCancelBtn.addEventListener('click', hideConfirmModal);
+            document.querySelectorAll('.payment-option-btn').forEach(btn => {
+                btn.addEventListener('click', () => abrirModalDeValor(btn.dataset.payment));
+            });
+            paymentCancelBtn.addEventListener('click', () => paymentModal.classList.add('hidden'));
+            paymentConcluirBtn.addEventListener('click', concluirVendaMultipla);
+            amountInputForm.addEventListener('submit', adicionarPagamento);
+            amountCancelBtn.addEventListener('click', () => amountInputModal.classList.add('hidden'));
+            productRegistrationForm.addEventListener('submit', registerNewProduct);
+            registrationCancelBtn.addEventListener('click', hideRegistrationModal);
+            closingCloseBtn.addEventListener('click', () => closingModal.classList.add('hidden'));
+            closingDownloadBtn.addEventListener('click', concluirFechamento);
+
+            loadProdutos();
+            atualizarTela();
+            produtoInput.focus();
+        }
+
+        function handleShortcuts(e) {
+            const activeEl = document.activeElement;
+            const isInput = ['INPUT', 'TEXTAREA'].includes(activeEl.tagName);
+            
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (!activityLogModal.classList.contains('hidden')) activityLogModal.classList.add('hidden');
+                else if (!productListModal.classList.contains('hidden')) productListModal.classList.add('hidden');
+                else if (!amountInputModal.classList.contains('hidden')) amountInputModal.classList.add('hidden');
+                else if (!paymentModal.classList.contains('hidden')) paymentModal.classList.add('hidden');
+                else if (!closingModal.classList.contains('hidden')) closingModal.classList.add('hidden');
+                else if (!productRegistrationModal.classList.contains('hidden')) hideRegistrationModal();
+                else if (!confirmModal.classList.contains('hidden')) hideConfirmModal();
+                else if (!messageModal.classList.contains('hidden')) hideMessageModal();
+                else if(carrinho && carrinho.length > 0) cancelarOperacao();
+                return;
+            }
+
+            if (e.ctrlKey && e.key.toLowerCase() === 'i') {
+                e.preventDefault();
+                showFullProductList();
+            }
+
+            if(isInput && e.key !== 'Enter') return;
+
+            if (e.key === 'F3') { e.preventDefault(); iniciarFinalizacaoVenda(); }
+            if (e.key === 'F5' && carrinho.length > 0) { e.preventDefault(); window.removerItem(carrinho.length - 1); showMessageModal("Último item removido."); }
+            if (e.key === 'F7') { 
+                e.preventDefault();
+                showRegistrationModal(); 
+            }
+            if (e.key === 'F8') {
+                e.preventDefault();
+                showActivityLog();
+            }
+            if (e.key === 'F10') { 
+                e.preventDefault(); 
+                exibirFechamentoCaixa();
+            }
+        }
+
+        checkLoginStatus();
+    });
+    </script>
+</body>
+</html>
